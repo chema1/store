@@ -1,0 +1,44 @@
+{
+  "name": "cordova-plugin-wkwebview-engine",
+  "version": "1.1.6",
+  "description": "The official Apache Cordova WKWebView Engine Plugin",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ionic-team/cordova-plugin-wkwebview-engine.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ionic-team/cordova-plugin-wkwebview-engine/issues"
+  },
+  "keywords": [
+    "cordova",
+    "wkwebview"
+  ],
+  "scripts": {
+    "test": "npm run eslint && npm run objc-tests",
+    "objc-tests": "cd tests/ios && npm test",
+    "preobjc-tests": "cd tests/ios && npm install",
+    "eslint": "eslint src"
+  },
+  "author": {
+    "name": "Apache Cordova"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "eslint": "^3.19.0",
+    "eslint-config-semistandard": "^11.0.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.3.0",
+    "eslint-plugin-node": "^5.0.0",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1"
+  },
+  "gitHead": "0ba9a65318d3b951755d7455df2bc10670b03162",
+  "readme": "# DEPRECATED\n\nRepo moved to: [https://github.com/ionic-team/cordova-plugin-ionic-webview](https://github.com/ionic-team/cordova-plugin-ionic-webview)\n",
+  "readmeFilename": "README.md",
+  "homepage": "https://github.com/ionic-team/cordova-plugin-wkwebview-engine#readme",
+  "_id": "cordova-plugin-wkwebview-engine@1.1.6",
+  "_shasum": "37baff80b0bcd49d6e6bfa3a254e3650e8039cc4",
+  "_from": "git+https://github.com/driftyco/cordova-plugin-wkwebview-engine.git",
+  "_resolved": "git+https://github.com/driftyco/cordova-plugin-wkwebview-engine.git#0ba9a65318d3b951755d7455df2bc10670b03162"
+}

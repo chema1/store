@@ -1,97 +1,142 @@
 'use strict';
 
 var path = require('path');
+var gutil = require('gulp-util');
 var gulp = require('gulp');
-var conf = require('./conf');
+var conf = require('../gulpfile.config');
+var minimist = require('minimist');
+
+var packageConfig = require('../package.json');
 
 var $ = require('gulp-load-plugins')({
   pattern: ['gulp-*', 'main-bower-files', 'uglify-save-license', 'del']
 });
 
-gulp.task('partials', function () {
-  return gulp.src([
-    path.join(conf.paths.src, '/app/**/*.html'),
-    path.join(conf.paths.tmp, '/serve/app/**/*.html')
-  ])
-    .pipe($.htmlmin({
-      removeEmptyAttributes: true,
-      removeAttributeQuotes: true,
-      collapseBooleanAttributes: true,
-      collapseWhitespace: true
-    }))
-    .pipe($.angularTemplatecache('templateCacheHtml.js', {
-      module: 'store',
-      root: 'app'
-    }))
-    .pipe(gulp.dest(conf.paths.tmp + '/partials/'));
+var options = minimist(process.argv.slice(2), {
+  string: 'environment',
+  boolean: 'debug',
+  alias: { e: 'environment' }
 });
 
-gulp.task('html', ['inject', 'partials'], function () {
-  var partialsInjectFile = gulp.src(path.join(conf.paths.tmp, '/partials/templateCacheHtml.js'), { read: false });
-  var partialsInjectOptions = {
-    starttag: '<!-- inject:partials -->',
-    ignorePath: path.join(conf.paths.tmp, '/partials'),
-    addRootSlash: false
-  };
+function replaceConstant(contents, string, replacement) {
+  // Make sure we replace only the string located inside markers
+  var constantRegExp = new RegExp('(// replace:constant[\\s\\S]*?)' + string + '([\\s\\S]*?// endreplace)', 'gm');
+  return contents.replace(constantRegExp, '$1' + replacement + '$2')
+}
 
-  var htmlFilter = $.filter('*.html', { restore: true });
-  var jsFilter = $.filter('**/*.js', { restore: true });
-  var cssFilter = $.filter('**/*.css', { restore: true });
+function setEnvironment(file) {
+  var contents = file.contents.toString();
 
-  return gulp.src(path.join(conf.paths.tmp, '/serve/*.html'))
-    .pipe($.inject(partialsInjectFile, partialsInjectOptions))
+  // Get the object containing all environments values
+  var environmentRegExp = new RegExp('// replace:environment\\s*?([\\s\\S]*?)// endreplace', 'gm');
+  var environment = eval(environmentRegExp.exec(contents)[1] + 'environment;');
+
+  // Get the target environment value
+  var name = options.environment || conf.defaultBuildEnvironment;
+  var value = environment[name];
+
+  if (!value) {
+    throw new gutil.PluginError({
+      plugin: 'setEnvironment',
+      message: 'Cannot find configuration for environment "' + name + '".\n' +
+      'Check your environment values in file `main.constants.ts`\n'
+    });
+  }
+
+  gutil.log('Building for environment: ' + gutil.colors.green(name));
+
+  // Replace constant values
+  contents = replaceConstant(contents, 'environment: environment.local', 'environment: ' + JSON.stringify(value));
+  contents = replaceConstant(contents, 'version: \'dev\'', 'version: \'' + packageConfig.version + '\'');
+
+  // Remove all environment values and update file
+  file.contents = new Buffer(contents.replace(environmentRegExp, ''));
+
+  return file;
+}
+
+gulp.task('build:sources', ['inject'], function() {
+  var htmlFilter = $.filter('*.html', {restore: true, dot: true});
+  var jsFilter = $.filter('**/*.js', {restore: true, dot: true});
+  var cssFilter = $.filter('**/*.css', {restore: true, dot: true});
+
+  var task = gulp.src(path.join(conf.paths.tmp, 'index.html'))
+    .pipe($.replace(/<html/g, '<html ng-strict-di'))
     .pipe($.useref())
-    .pipe(jsFilter)
-    .pipe($.sourcemaps.init())
-    .pipe($.ngAnnotate())
-    .pipe($.uglify({ preserveComments: $.uglifySaveLicense })).on('error', conf.errorHandler('Uglify'))
-    .pipe($.rev())
-    .pipe($.sourcemaps.write('maps'))
-    .pipe(jsFilter.restore)
-    .pipe(cssFilter)
-    // .pipe($.sourcemaps.init())
-    .pipe($.replace('../../../bower_components/bootstrap-sass/assets/fonts/bootstrap/', '../fonts/'))
-    .pipe($.cssnano())
-    .pipe($.rev())
-    // .pipe($.sourcemaps.write('maps'))
-    .pipe(cssFilter.restore)
-    .pipe($.revReplace())
-    .pipe(htmlFilter)
-    .pipe($.htmlmin({
-      removeEmptyAttributes: true,
-      removeAttributeQuotes: true,
-      collapseBooleanAttributes: true,
-      collapseWhitespace: true
-    }))
-    .pipe(htmlFilter.restore)
-    .pipe(gulp.dest(path.join(conf.paths.dist, '/')))
-    .pipe($.size({ title: path.join(conf.paths.dist, '/'), showFiles: true }));
-  });
+    .pipe($.if('**/app*.js', $.intercept(setEnvironment)));
+
+  if (!options.debug) {
+    task = task.pipe(jsFilter)
+      .pipe($.uglify({
+        output: { comments: $.uglifySaveLicense }
+      }))
+      .on('error', conf.errorHandler('Uglify'))
+      .pipe($.rev())
+      .pipe(jsFilter.restore)
+      .pipe(cssFilter)
+      .pipe($.cleanCss({processImport: false}))
+      .pipe($.rev())
+      .pipe(cssFilter.restore)
+      .pipe($.revReplace())
+      .pipe(htmlFilter)
+      .pipe($.htmlmin({
+        removeComments: true,
+        collapseWhitespace: true
+      }))
+      .pipe(htmlFilter.restore);
+  }
+  return task.pipe(gulp.dest(path.join(conf.paths.dist, '/')))
+    .pipe($.size({title: path.join(conf.paths.dist, '/'), showFiles: true}));
+});
 
 // Only applies for fonts from bower dependencies
 // Custom fonts are handled by the "other" task
-gulp.task('fonts', function () {
+gulp.task('fonts', function() {
   return gulp.src($.mainBowerFiles())
-    .pipe($.filter('**/*.{eot,otf,svg,ttf,woff,woff2}'))
+    .pipe($.filter('**/*.{eot,svg,ttf,woff,woff2}'))
     .pipe($.flatten())
-    .pipe(gulp.dest(path.join(conf.paths.dist, '/fonts/')));
+    .pipe(gulp.dest(path.join(conf.paths.tmp, '/fonts/')));
 });
 
-gulp.task('other', function () {
-  var fileFilter = $.filter(function (file) {
+// Extra arbitrary files as configured
+gulp.task('extra', function() {
+  var stream = require('merge-stream')();
+
+  conf.extraFiles.forEach(function(e) {
+    var files = e.files.map(function (file) {
+      return path.join(e.basePath, file);
+    });
+    var task = gulp.src(files, { base: e.basePath })
+      .pipe(gulp.dest(path.join(conf.paths.dist, '/')));
+    stream.add(task);
+  });
+
+  return stream.isEmpty() ? null : stream;
+});
+
+gulp.task('other', ['fonts', 'extra'], function() {
+  var fileFilter = $.filter(function(file) {
     return file.stat.isFile();
   });
 
   return gulp.src([
-    path.join(conf.paths.src, '/**/*'),
-    path.join('!' + conf.paths.src, '/**/*.{html,css,js,scss}')
-  ])
+      path.join(conf.paths.src, '/**/*'),
+      path.join(conf.paths.tmp, '/**/*.{eot,svg,ttf,woff,woff2}'),
+      path.join('!' + conf.paths.src, '/**/*.{html,css,js,ts,scss}'),
+      path.join('!' + conf.paths.bower, '/**/*'),
+      path.join('!' + conf.paths.src, '/translations/*'),
+      path.join('!' + conf.paths.src, '/images/*')
+    ])
     .pipe(fileFilter)
     .pipe(gulp.dest(path.join(conf.paths.dist, '/')));
 });
 
-gulp.task('clean', function () {
-  return $.del([path.join(conf.paths.dist, '/'), path.join(conf.paths.tmp, '/')]);
+gulp.task('build', ['build:sources', 'other', 'images']);
+
+gulp.task('clean:dist', function() {
+  return $.del(conf.paths.dist);
 });
 
-gulp.task('build', ['html', 'fonts', 'other']);
+gulp.task('clean', ['images:clean-cache'], function() {
+  return $.del([conf.paths.dist, conf.paths.tmp]);
+});

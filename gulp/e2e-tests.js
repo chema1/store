@@ -2,18 +2,17 @@
 
 var path = require('path');
 var gulp = require('gulp');
-var conf = require('./conf');
+var conf = require('../gulpfile.config');
 
 var browserSync = require('browser-sync');
 
 var $ = require('gulp-load-plugins')();
 
 // Downloads the selenium webdriver
-gulp.task('webdriver-update', $.protractor.webdriver_update);
+gulp.task('webdriver:update', $.protractor.webdriver_update);
+gulp.task('webdriver:standalone', $.protractor.webdriver_standalone);
 
-gulp.task('webdriver-standalone', $.protractor.webdriver_standalone);
-
-function runProtractor (done) {
+function runProtractor(done) {
   var params = process.argv;
   var args = params.length > 3 ? [params[3], params[4]] : [];
 
@@ -22,17 +21,16 @@ function runProtractor (done) {
       configFile: 'protractor.conf.js',
       args: args
     }))
-    .on('error', function (err) {
+    .on('error', function(err) {
       // Make sure failed tests cause gulp to exit non-zero
       throw err;
     })
-    .on('end', function () {
+    .on('end', function() {
       // Close browser sync server
       browserSync.exit();
       done();
     });
 }
 
-gulp.task('protractor', ['protractor:src']);
-gulp.task('protractor:src', ['serve:e2e', 'webdriver-update'], runProtractor);
-gulp.task('protractor:dist', ['serve:e2e-dist', 'webdriver-update'], runProtractor);
+gulp.task('protractor', ['serve:e2e', 'webdriver:update'], runProtractor);
+gulp.task('protractor:dist', ['serve:e2e-dist', 'webdriver:update'], runProtractor);

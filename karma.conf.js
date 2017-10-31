@@ -1,111 +1,94 @@
 'use strict';
 
 var path = require('path');
-var conf = require('./gulp/conf');
-
+var conf = require('./gulpfile.config');
 var _ = require('lodash');
 var wiredep = require('wiredep');
 
-var pathSrcHtml = [
-  path.join(conf.paths.src, '/**/*.html')
-];
-
+/*
+ * list all files that we want to load in the browser
+ */
 function listFiles() {
   var wiredepOptions = _.extend({}, conf.wiredep, {
     dependencies: true,
     devDependencies: true
   });
-
-  var patterns = wiredep(wiredepOptions).js
-    .concat([
-      path.join(conf.paths.src, '/app/**/*.module.js'),
-      path.join(conf.paths.src, '/app/**/*.js'),
-      path.join(conf.paths.src, '/**/*.spec.js'),
-      path.join(conf.paths.src, '/**/*.mock.js'),
-    ])
-    .concat(pathSrcHtml);
-
-  var files = patterns.map(function(pattern) {
-    return {
-      pattern: pattern
-    };
-  });
-  files.push({
-    pattern: path.join(conf.paths.src, '/assets/**/*'),
-    included: false,
-    served: true,
-    watched: false
-  });
-  return files;
+  return wiredep(wiredepOptions).js
+    .concat([path.join(conf.paths.tmp, '**/*.js'), {
+      pattern: path.join(conf.paths.src, 'images/**/*.*'),
+      included: false
+    }]);
 }
 
 module.exports = function(config) {
 
   var configuration = {
+
+    // List of files/patterns to load in the browser
     files: listFiles(),
 
+    // Redirect root (/) requests to static assets
+    proxies: {
+      '/libraries': '/base/sources/libraries',
+      '/images': '/base/sources/images'
+    },
+
+    // Continuous Integration mode
+    // If true, it capture browsers, run tests and exit
     singleRun: true,
 
+    // Enable or disable watching files and executing the tests whenever one of these files changes.
     autoWatch: false,
 
-    ngHtml2JsPreprocessor: {
-      stripPrefix: conf.paths.src + '/',
-      moduleName: 'store'
-    },
+    // Level of logging, can be: LOG_DISABLE || LOG_ERROR || LOG_WARN || LOG_INFO || LOG_DEBUG
+    logLevel: config.LOG_INFO,
 
-    logLevel: 'WARN',
+    // Testing framework to use (jasmine/mocha/qunit/...)
+    frameworks: ['jasmine'],
 
-    frameworks: ['phantomjs-shim', 'jasmine', 'angular-filesort'],
+    // Start these browsers, currently available:
+    // - Chrome
+    // - ChromeCanary
+    // - Firefox
+    // - Opera
+    // - Safari (only Mac)
+    // - PhantomJS
+    // - IE (only Windows)
+    browsers: ['PhantomJS'],
 
-    angularFilesort: {
-      whitelist: [path.join(conf.paths.src, '/**/!(*.html|*.spec|*.mock).js')]
-    },
-
-    browsers : ['PhantomJS'],
-
-    plugins : [
+    // List of plugins to load
+    plugins: [
       'karma-phantomjs-launcher',
-      'karma-angular-filesort',
-      'karma-phantomjs-shim',
-      'karma-coverage',
       'karma-jasmine',
-      'karma-ng-html2js-preprocessor'
+      'karma-coverage-istanbul-reporter',
+      'karma-junit-reporter',
+      'karma-sourcemap-loader'
     ],
 
-    coverageReporter: {
-      type : 'html',
-      dir : 'coverage/'
+    // A map of preprocessors to use
+    preprocessors: ['sourcemap'],
+
+    // List of reporters
+    reporters: ['progress', 'junit', 'coverage-istanbul'],
+
+    // Coverage configuration
+    coverageIstanbulReporter: {
+      reports: ['html', 'lcovonly', 'text-summary'],
+      dir: 'reports/coverage',
+      fixWebpackSourcePaths: true
     },
 
-    reporters: ['progress'],
+    junitReporter: {
+      outputDir: 'reports/junit/',
+      outputFile: 'TESTS-xunit.xml',
+      useBrowserName: false,
+      suite: '' // suite will become the package name attribute in xml testsuite element
+    },
 
-    proxies: {
-      '/assets/': path.join('/base/', conf.paths.src, '/assets/')
-    }
+    // Enable or disable colors in the output (reporters and logs).
+    color: true
   };
 
-  // This is the default preprocessors configuration for a usage with Karma cli
-  // The coverage preprocessor is added in gulp/unit-test.js only for single tests
-  // It was not possible to do it there because karma doesn't let us now if we are
-  // running a single test or not
-  configuration.preprocessors = {};
-  pathSrcHtml.forEach(function(path) {
-    configuration.preprocessors[path] = ['ng-html2js'];
-  });
-
-  // This block is needed to execute Chrome on Travis
-  // If you ever plan to use Chrome and Travis, you can keep it
-  // If not, you can safely remove it
-  // https://github.com/karma-runner/karma/issues/1144#issuecomment-53633076
-  if(configuration.browsers[0] === 'Chrome' && process.env.TRAVIS) {
-    configuration.customLaunchers = {
-      'chrome-travis-ci': {
-        base: 'Chrome',
-        flags: ['--no-sandbox']
-      }
-    };
-    configuration.browsers = ['chrome-travis-ci'];
-  }
-
   config.set(configuration);
+
 };

@@ -1,15 +1,12 @@
-/**
- * This file uses the Page Object pattern to define the main page for tests
- * https://docs.google.com/presentation/d/1B6manhG0zEXkC-H-tPo2vwU06JhL8w9-XCF9oehXzAQ
+/*
+ * This file uses the Page Object pattern to define the main page for tests.
+ * See docs/e2e-guide.md for more info.
  */
 
 'use strict';
 
-var MainPage = function() {
-  this.jumbEl = element(by.css('.jumbotron'));
-  this.h1El = this.jumbEl.element(by.css('h1'));
-  this.imgEl = this.jumbEl.element(by.css('img'));
-  this.thumbnailEls = element(by.css('body')).all(by.repeater('awesomeThing in main.awesomeThings'));
+var Main = function() {
+  // put shared selectors here
 };
 
-module.exports = new MainPage();
+module.exports = new Main();

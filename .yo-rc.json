@@ -83,5 +83,70 @@
         "tmp": ".tmp"
       }
     }
+  },
+  "generator-fountain-angular2": {
+    "version": "1.0.0",
+    "props": {
+      "framework": "angular2",
+      "modules": "webpack",
+      "js": "babel",
+      "ci": "",
+      "css": "scss",
+      "resolved": "/Users/jose.cervantes/node_modules/generator-fountain-angular2/generators/app/index.js",
+      "namespace": "fountain-angular2:app",
+      "_": [],
+      "sample": "todoMVC",
+      "router": "uirouter"
+    }
+  },
+  "generator-webappstarter": {
+    "projectName": "store"
+  },
+  "generator-angular-mobile": {
+    "insertRoutes": true,
+    "registerRoutesFile": "server/routes.js",
+    "routesNeedle": "// Insert routes below",
+    "routesBase": "/api/",
+    "pluralizeRoutes": true,
+    "insertSockets": true,
+    "registerSocketsFile": "server/config/socketio.js",
+    "socketsNeedle": "// Insert sockets below",
+    "filters": {
+      "uirouter": true
+    }
+  },
+  "generator-ng-component": {
+    "routeDirectory": "www/app/",
+    "directiveDirectory": "www/app/",
+    "filterDirectory": "www/app/",
+    "serviceDirectory": "www/app/",
+    "basePath": "www",
+    "moduleName": "",
+    "filters": [
+      "uirouter"
+    ],
+    "extensions": [
+      "css",
+      "js",
+      "html"
+    ],
+    "directiveSimpleTemplates": "",
+    "directiveComplexTemplates": "",
+    "filterTemplates": "",
+    "serviceTemplates": "",
+    "factoryTemplates": "",
+    "controllerTemplates": "",
+    "decoratorTemplates": "",
+    "providerTemplates": "",
+    "routeTemplates": ""
+  },
+  "generator-angular-pro": {
+    "version": "2.2.4",
+    "props": {
+      "appName": "store",
+      "target": "both",
+      "ui": "ionic",
+      "projectName": "store"
+    }
   }
 }

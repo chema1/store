@@ -2,54 +2,53 @@
 
 var path = require('path');
 var gulp = require('gulp');
-var conf = require('./conf');
-
+var conf = require('../gulpfile.config');
+var wiredep = require('wiredep').stream;
+var _ = require('lodash');
 var browserSync = require('browser-sync');
 
 var $ = require('gulp-load-plugins')();
 
-var wiredep = require('wiredep').stream;
-var _ = require('lodash');
+function buildStyles() {
+  var mainFolder = path.join(conf.paths.src, conf.paths.main);
 
-gulp.task('styles-reload', ['styles'], function() {
-  return buildStyles()
-    .pipe(browserSync.stream());
-});
-
-gulp.task('styles', function() {
-  return buildStyles();
-});
-
-var buildStyles = function() {
   var sassOptions = {
     outputStyle: 'expanded',
-    precision: 10
+    precision: 10,
+    includePaths: conf.sassIncludePaths
   };
 
   var injectFiles = gulp.src([
-    path.join(conf.paths.src, '/app/**/*.scss'),
-    path.join('!' + conf.paths.src, '/app/index.scss')
-  ], { read: false });
+    path.join(mainFolder, '/**/*.scss'),
+    path.join('!' + mainFolder, '/*.scss'),
+    path.join('!' + mainFolder, '/theme/*.scss')
+  ], {read: false});
 
   var injectOptions = {
     transform: function(filePath) {
-      filePath = filePath.replace(conf.paths.src + '/app/', '');
+      filePath = filePath.replace(mainFolder, '');
       return '@import "' + filePath + '";';
     },
-    starttag: '// injector',
-    endtag: '// endinjector',
+    starttag: '// inject:styles',
+    endtag: '// endinject',
+    relative: true,
     addRootSlash: false
   };
 
-
-  return gulp.src([
-    path.join(conf.paths.src, '/app/index.scss')
-  ])
+  return gulp.src(path.join(mainFolder, 'main.scss'))
     .pipe($.inject(injectFiles, injectOptions))
     .pipe(wiredep(_.extend({}, conf.wiredep)))
     .pipe($.sourcemaps.init())
     .pipe($.sass(sassOptions)).on('error', conf.errorHandler('Sass'))
     .pipe($.autoprefixer()).on('error', conf.errorHandler('Autoprefixer'))
     .pipe($.sourcemaps.write())
-    .pipe(gulp.dest(path.join(conf.paths.tmp, '/serve/app/')));
-};
+    .pipe(gulp.dest(path.join(conf.paths.tmp, '/css/')));
+}
+
+gulp.task('styles', function() {
+  return buildStyles();
+});
+
+gulp.task('styles:reload', ['styles'], function() {
+  return buildStyles().pipe(browserSync.stream());
+});

@@ -2,38 +2,24 @@
 
 var path = require('path');
 var gulp = require('gulp');
-var conf = require('./conf');
+var conf = require('../gulpfile.config');
 
-var browserSync = require('browser-sync');
+gulp.task('watch', ['inject:watch'], function() {
+  var options = {
+    debounceDelay: 500
+  };
 
-function isOnlyChange(event) {
-  return event.type === 'changed';
-}
-
-gulp.task('watch', ['inject'], function () {
-
-  gulp.watch([path.join(conf.paths.src, '/*.html'), 'bower.json'], ['inject-reload']);
+  gulp.watch(['bower.json', path.join(conf.paths.src, '/index.html')], options, ['inject:reload']);
 
   gulp.watch([
-    path.join(conf.paths.src, '/app/**/*.css'),
-    path.join(conf.paths.src, '/app/**/*.scss')
-  ], function(event) {
-    if(isOnlyChange(event)) {
-      gulp.start('styles-reload');
+    path.join(conf.paths.src, '/**/*.css'),
+    path.join(conf.paths.src, '/**/*.scss')
+  ], options, function(event) {
+    if (event.type === 'changed') {
+      gulp.start('styles:reload');
     } else {
-      gulp.start('inject-reload');
+      gulp.start('inject:reload');
     }
   });
 
-  gulp.watch(path.join(conf.paths.src, '/app/**/*.js'), function(event) {
-    if(isOnlyChange(event)) {
-      gulp.start('scripts-reload');
-    } else {
-      gulp.start('inject-reload');
-    }
-  });
-
-  gulp.watch(path.join(conf.paths.src, '/app/**/*.html'), function(event) {
-    browserSync.reload(event.path);
-  });
 });
